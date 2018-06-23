@@ -5,7 +5,6 @@ import (
 	"strconv"
 	"io/ioutil"
 	"sync"
-	"log"
 )
 
 type DServ struct {
@@ -66,7 +65,7 @@ func (srv *DServ) LoadSetting(sf string) error {
 		//log.Println("error: when try load settings", err)
 		return err
 	}
-	log.Println(ss)
+	//log.Println(ss)
 	for _, r := range ss.Ds {
 		dl, err := RestoreDownloader(r.FI.Url, r.FI.FileName, r.Dp)
 		if err != nil {

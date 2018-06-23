@@ -1,0 +1,5 @@
+GET /xinruozhishui/go-thunder/archive/master.zip HTTP/1.1
+Host: github.com
+User-Agent: Go-http-client/1.1
+Range: bytes=0-950155
+

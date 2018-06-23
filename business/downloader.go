@@ -101,7 +101,7 @@ func CreateDownloader(url string, path string, count int64) (*Downloader, error)
 		//can't truncate file
 		return nil, err
 	}
-	//create part-downloader fsoreach segment
+	//create part-downloader foreach segment
 	ps := c / count
 	wp := new(WorkerPool)
 	for i := int64(0); i < count-int64(1); i++ {
@@ -109,6 +109,12 @@ func CreateDownloader(url string, path string, count int64) (*Downloader, error)
 		mv := MonitoredWorker{dw: d}
 		wp.AppendWork(&mv)
 	}
+	lastseg := int64(ps * (count - 1))
+	dow := CreatePartialDownloader(url, sf, lastseg, lastseg, c)
+	mv := MonitoredWorker{dw: dow}
+
+	//add to worker pool
+	wp.AppendWork(&mv)
 	d := Downloader{
 		sf: sf,
 		wp: wp,

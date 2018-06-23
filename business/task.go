@@ -261,7 +261,7 @@ func ExitJudgment(gdownsrv *DServ)  {
 		<-c
 		func() {
 			gdownsrv.StopAllTask()
-			log.Println("info: save setting ", gdownsrv.SaveSetting(GetSettingPath()))
+			gdownsrv.SaveSetting(GetSettingPath())
 		}()
 		os.Exit(1)
 	}()
