@@ -24,7 +24,7 @@ go build -o "go-thunder.exe" main.go
 主界面
 ![Alt 主界面](https://sunzexinblog.oss-cn-beijing.aliyuncs.com/image/111.png)
 添加任务
-![Alt 添加任务](https://sunzexinblog.oss-cn-beijing.aliyuncs.com/image/222.png)
+![Alt 添加任务](https://sunzexinblog.oss-cn-beijing.aliyuncs.com/image/333.png)
 任务控制
-![Alt 开始任务](https://sunzexinblog.oss-cn-beijing.aliyuncs.com/image/333.png)
+![Alt 开始任务](https://sunzexinblog.oss-cn-beijing.aliyuncs.com/image/222.png)
 ![Alt 结束任务](https://sunzexinblog.oss-cn-beijing.aliyuncs.com/image/444.png)
