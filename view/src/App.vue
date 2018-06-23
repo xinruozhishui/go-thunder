@@ -75,7 +75,7 @@
                 <el-form-item label="保存路径">
                     <el-input v-model="createTaskForm.FilePath" auto-complete="off"></el-input>
                 </el-form-item>
-                <el-form-item label="线程数">
+                <el-form-item label="并发数">
                     <el-select v-model="createTaskForm.PartCount"
                                placeholder="1">
                         <el-option label="2" value="2"></el-option>
