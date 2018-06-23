@@ -63,6 +63,8 @@ func (srv *DServ) createTask(rwr http.ResponseWriter, req *http.Request) {
 		return
 	}
 	srv.dls = append(srv.dls, dl)
+	// auto start download
+	dl.StartAllDownloader()
 	js, _ := json.Marshal("ok")
 	rwr.Write(js)
 }
@@ -130,7 +132,7 @@ func (srv *DServ) stopTask(rwr http.ResponseWriter, req *http.Request) {
 	rwr.Write(js)
 }
 
-// startAllTask is to start All download tasks
+// startAllTask is to start all download tasks
 func (srv *DServ) startAllTask(rwr http.ResponseWriter, req *http.Request) {
 	defer func() {
 		req.Body.Close()
@@ -178,7 +180,6 @@ func (srv *DServ) StartAllTask() {
 // StopAllTask is to stop all tasks
 func (srv *DServ) StopAllTask() {
 	srv.oplock.Lock()
-	// 在该函数程序结束的时候执行收尾
 	defer func() {
 		srv.oplock.Unlock()
 	}()

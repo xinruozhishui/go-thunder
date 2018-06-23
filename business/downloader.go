@@ -56,31 +56,22 @@ type PartialDownloader struct {
 	file   *library.SafeFile
 }
 
+type DownloadSettings struct {
+	FI FileInfo           `json:"FileInfo"`
+	Dp []DownloadProgress `json:"DownloadProgress"`
+}
+
+type ServiceSettings struct {
+	Ds []DownloadSettings
+}
+
+
 func getDown() string {
 	usr, _ := user.Current()
 	st := strconv.QuoteRune(os.PathSeparator)
 	st = st[1 : len(st)-1]
 	return usr.HomeDir + st + "Downloads" + st
 }
-
-
-
-func (pd *PartialDownloader) DoWork() (bool, error) {
-	return pd.DownloadSergment()
-}
-
-func (pd PartialDownloader) GetProgress() interface{} {
-	return pd.dp
-}
-
-func (pd *PartialDownloader) BeforeRun() error {
-	return pd.BeforeDownload()
-}
-
-func (pd *PartialDownloader) AfterStop() error {
-	return pd.AfterStopDownload()
-}
-
 
 // CreateDownloader is to creating a new Downloader
 func CreateDownloader(url string, path string, count int64) (*Downloader, error)  {
@@ -182,9 +173,6 @@ func (pd *PartialDownloader) BeforeDownload() error {
 	}
 
 	r.Header.Add("Range", "bytes="+strconv.FormatInt(pd.dp.Pos, 10)+"-"+strconv.FormatInt(pd.dp.To, 10))
-	f,_ := library.CreateSafeFile("test")
-	r.Write(f)
-	f.Close()
 	resp, err := pd.client.Do(r)
 	if err != nil {
 		log.Printf("error: error download part file%v \n", err)
@@ -205,7 +193,7 @@ func (pd *PartialDownloader) AfterStopDownload() error {
 	return pd.file.Sync()
 }
 
-
+// RestoreDownloader is to restart a downloader
 func RestoreDownloader(url string, fp string, dp []DownloadProgress) (dl *Downloader, err error) {
 	dfs := getDown() + fp
 	sf, err := library.OpenSafeFile(dfs)
@@ -234,6 +222,7 @@ func RestoreDownloader(url string, fp string, dp []DownloadProgress) (dl *Downlo
 	return &d, nil
 }
 
+// GetProgress is to get a download'progress
 func (dl *Downloader) GetProgress() []DownloadProgress {
 	pr := dl.wp.GetAllProgress().([]interface{})
 	re := make([]DownloadProgress, len(pr))
@@ -266,16 +255,7 @@ func (dl *Downloader) StartAllDownloader() []error {
 	return dl.wp.StartAll()
 }
 
-
-type DownloadSettings struct {
-	FI FileInfo           `json:"FileInfo"`
-	Dp []DownloadProgress `json:"DownloadProgress"`
-}
-
-type ServiceSettings struct {
-	Ds []DownloadSettings
-}
-
+// LoadFromFile is to load download progress from a file
 func LoadFromFile(s string) (*ServiceSettings, error) {
 	sb, err := ioutil.ReadFile(s)
 	if err != nil {
@@ -290,6 +270,7 @@ func LoadFromFile(s string) (*ServiceSettings, error) {
 	return &ss, nil
 }
 
+// SaveToFile is to save download progress to a file
 func (s *ServiceSettings) SaveToFile(fp string) error {
 	dat, err := json.Marshal(s)
 	if err != nil {
@@ -311,3 +292,20 @@ func GetSettingPath() string  {
 	st = st[1 : len(st)-1]
 	return u.HomeDir + st + library.SETTING_FILE_NAME
 }
+
+func (pd *PartialDownloader) DoWork() (bool, error) {
+	return pd.DownloadSergment()
+}
+
+func (pd PartialDownloader) GetProgress() interface{} {
+	return pd.dp
+}
+
+func (pd *PartialDownloader) BeforeRun() error {
+	return pd.BeforeDownload()
+}
+
+func (pd *PartialDownloader) AfterStop() error {
+	return pd.AfterStopDownload()
+}
+
