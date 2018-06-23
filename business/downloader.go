@@ -273,7 +273,7 @@ type ServiceSettings struct {
 func LoadFromFile(s string) (*ServiceSettings, error) {
 	sb, err := ioutil.ReadFile(s)
 	if err != nil {
-		return nil, err
+		library.CreateSafeFile(s)
 	}
 
 	var ss ServiceSettings

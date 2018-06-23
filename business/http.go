@@ -63,7 +63,7 @@ func (srv *DServ) SaveSetting(sf string) error {
 func (srv *DServ) LoadSetting(sf string) error {
 	ss, err := LoadFromFile(sf)
 	if err != nil {
-		log.Println("error: when try load settings", err)
+		//log.Println("error: when try load settings", err)
 		return err
 	}
 	log.Println(ss)
