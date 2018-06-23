@@ -1,5 +1,0 @@
-GET /webide/PhpStorm-2018.1.6.dmg HTTP/1.1
-Host: download.jetbrains.com
-User-Agent: Go-http-client/1.1
-Range: bytes=166026778-210592107
-
