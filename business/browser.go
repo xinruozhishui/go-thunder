@@ -11,16 +11,11 @@ func Open(url string) error {
 	switch runtime.GOOS {
 	case "windows":
 		cmd = exec.Command("cmd.exe", "/c", "start", url)
-		break
 	case "darwin":
 		cmd = exec.Command("open", url)
-		break
 	case "linux":
 		cmd = exec.Command("xdg-open", url)
-		break
 	default:
-		break
-
 	}
 	return cmd.Start()
 }
