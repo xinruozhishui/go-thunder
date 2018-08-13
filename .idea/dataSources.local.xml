@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="dataSourceStorageLocal">
+    <data-source name="gorm" uuid="3db17ea3-0c18-4777-9949-232fd7166497">
+      <database-info product="" version="" jdbc-version="" driver-name="" driver-version="" />
+      <introspection-schemas>*:</introspection-schemas>
+    </data-source>
+  </component>
+</project>
