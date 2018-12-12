@@ -194,7 +194,7 @@ func (pd *PartialDownloader) AfterStopDownload() error {
 }
 
 // RestoreDownloader is to restart a downloader
-func RestoreDownloader(url string, fp string, dp []DownloadProgress) (dl *Downloader, err error) {
+func RestoreDownloader(url string, fp string, dp []*DownloadProgress) (dl *Downloader, err error) {
 	dfs := getDown() + fp
 	sf, err := library.OpenSafeFile(dfs)
 	if err != nil {

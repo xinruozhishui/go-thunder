@@ -1,14 +1,16 @@
 package business
 
 import (
+	"github.com/tidwall/gjson"
+	"github.com/xinruozhishui/go-thunder/dao"
+	"io/ioutil"
 	"net/http"
 	"strconv"
-	"io/ioutil"
 	"sync"
 )
 
 type DServ struct {
-	dls    []*Downloader
+	dls []*Downloader
 	// Mutex （互斥锁）和RWMutex（读写锁）
 	oplock sync.Mutex
 }
@@ -44,7 +46,6 @@ func (srv *DServ) index(rwr http.ResponseWriter, req *http.Request) {
 	rwr.Write(content)
 }
 
-
 // SaveSetting is to save all tasks'progresses in a file when the program exits
 func (srv *DServ) SaveSetting(sf string) error {
 	var ss ServiceSettings
@@ -59,15 +60,26 @@ func (srv *DServ) SaveSetting(sf string) error {
 }
 
 // LoadSetting is to load all task'progress from a file when the program starts
-func (srv *DServ) LoadSetting(sf string) error {
-	ss, err := LoadFromFile(sf)
+func (srv *DServ) GetTaskList(sf string) error {
+	var (
+		dp []*DownloadProgress
+	)
+	task, err := dao.GetTaskList()
 	if err != nil {
-		//log.Println("error: when try load settings", err)
 		return err
 	}
-	//log.Println(ss)
-	for _, r := range ss.Ds {
-		dl, err := RestoreDownloader(r.FI.Url, r.FI.FileName, r.Dp)
+	for _, r := range task {
+		for _, v := range gjson.Parse(r.DownloadProgress).Array() {
+			dp = append(dp, &DownloadProgress{
+				From: gjson.Get(v.String(), "from").Int(),
+				To: gjson.Get(v.String(), "to").Int(),
+				Pos:gjson.Get(v.String(), "pos").Int(),
+				BytesInSecond: gjson.Get(v.String(), "bytes_in_second").Int(),
+				Speed: gjson.Get(v.String(), "speed").Int(),
+				Lsmt: gjson.Get(v.String(), "lsmt").Time(),
+			})
+		}
+		dl, err := RestoreDownloader(r.Url, r.FileName, dp)
 		if err != nil {
 			return err
 		}
@@ -75,5 +87,3 @@ func (srv *DServ) LoadSetting(sf string) error {
 	}
 	return nil
 }
-
-

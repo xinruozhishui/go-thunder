@@ -5,19 +5,28 @@ import (
 )
 
 // 创建新任务
-func CreateTask(data map[string]interface{}) error {
+func CreateTask(data model.Task) error {
 	task := model.Task{
-		Id: data["id"].(int64),
-		FileName: data["file_name"].(string),
-		Size: data["size"].(int64),
-		Downloaded: data["downloaded"].(int64),
-		Progress: data["progress"].(int64),
-		Speed: data["speed"].(int64),
+		Id: data.Id,
+		FileName: data.FileName,
+		Size: data.Size,
+		Url: data.Url,
+		DownloadProgress: data.DownloadProgress,
 	}
 	if err := model.DB().Save(&task).Error; err != nil {
 		return err
 	}
 	return nil
+}
+
+func GetTaskList() ([]*model.Task, error) {
+	var (
+		task []*model.Task
+	)
+	if err := model.DB().Find(&task).Error; err != nil {
+		return nil, err
+	}
+	return task, nil
 }
 
 // 更新任务

@@ -12,7 +12,7 @@ func main() {
 	gdownsrv := new(business.DServ)
 	// Judging the condition of exit
 	business.ExitJudgment(gdownsrv)
-	gdownsrv.LoadSetting(business.GetSettingPath())
+	gdownsrv.GetTaskList(business.GetSettingPath())
 	//business.Open("http://localhost:9988/index.html")
 	gdownsrv.Start(9988)
 }
