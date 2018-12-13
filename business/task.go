@@ -1,10 +1,12 @@
 package business
 
 import (
+	"encoding/json"
+	"github.com/xinruozhishui/go-thunder/dao"
+	"github.com/xinruozhishui/go-thunder/model"
+	"io/ioutil"
 	"log"
 	"net/http"
-	"io/ioutil"
-	"encoding/json"
 	"os"
 	"os/signal"
 	"syscall"
@@ -126,6 +128,18 @@ func (srv *DServ) stopTask(rwr http.ResponseWriter, req *http.Request) {
 		http.Error(rwr, "error: id is out of jobs list", http.StatusInternalServerError)
 		return
 	}
+	// 将任务的最新状态保存到数据库
+	task := &model.Task{
+		Id: srv.dls[ind].Fi.Id,
+	}
+	dpStr, err := json.Marshal(srv.dls[ind].GetProgress())
+	if err != nil {
+		log.Println("jsonMarshalErr:", err)
+	}
+	task.DownloadProgress = string(dpStr)
+	if err := dao.UpdateTask(task); err != nil {
+		log.Println("UpdateTask:", err)
+	}
 
 	srv.dls[ind].StopAllDownloader()
 	js, _ := json.Marshal("ok")
@@ -245,6 +259,9 @@ func (srv *DServ) deleteTask(rwr http.ResponseWriter, req *http.Request) {
 	}
 
 	log.Printf("try stop segment download %v", srv.dls[ind].StopAllDownloader())
+	if err := dao.DeleteTask(srv.dls[ind].Fi.Id); err != nil {
+		log.Println("DeleteTaskErr:", err)
+	}
 	srv.dls = append(srv.dls[:ind], srv.dls[ind+1:]...)
 	js, _ := json.Marshal("ok")
 	rwr.Write(js)

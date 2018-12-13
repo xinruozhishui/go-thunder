@@ -33,7 +33,14 @@ func GetTaskList() ([]*model.Task, error) {
 // 更新任务
 func UpdateTask(data *model.Task) error {
 	log.Println("data:", data)
-	if err := model.DB().Model(&model.Task{}).Where("id = ?", data.Id).Updates(data).Error; err != nil {
+	if err := model.DB().Model(&model.Task{}).Updates(data).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func DeleteTask(id int64) (error) {
+	if err := model.DB().Where("id = ?", id).Delete(&model.Task{}).Error; err != nil {
 		return err
 	}
 	return nil

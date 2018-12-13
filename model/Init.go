@@ -18,6 +18,7 @@ func Init()  {
 		fmt.Println("OpenSqliteErr:",err)
 	}
 	db.AutoMigrate(&Task{})
+	db.LogMode(true)
 }
 
 func DB() *gorm.DB  {
