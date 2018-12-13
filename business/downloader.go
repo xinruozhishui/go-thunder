@@ -15,6 +15,7 @@ import (
 
 // download file information
 type FileInfo struct {
+	Id int64 `json:"id"`
 	// download file size
 	Size     int64  `json:"Size"`
 	// download file name
@@ -194,8 +195,8 @@ func (pd *PartialDownloader) AfterStopDownload() error {
 }
 
 // RestoreDownloader is to restart a downloader
-func RestoreDownloader(url string, fp string, dp []*DownloadProgress) (dl *Downloader, err error) {
-	dfs := getDown() + fp
+func RestartDownloader(id int64, url string, fileName string, dp []*DownloadProgress) (dl *Downloader, err error) {
+	dfs := getDown() + fileName
 	sf, err := library.OpenSafeFile(dfs)
 	if err != nil {
 		//can't create file on path
@@ -217,7 +218,7 @@ func RestoreDownloader(url string, fp string, dp []*DownloadProgress) (dl *Downl
 	d := Downloader{
 		sf: sf,
 		wp: wp,
-		Fi: FileInfo{FileName: fp, Size: s.Size(), Url: url},
+		Fi: FileInfo{Id: id, FileName: fileName, Size: s.Size(), Url: url},
 	}
 	return &d, nil
 }

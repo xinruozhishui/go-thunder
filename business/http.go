@@ -3,6 +3,7 @@ package business
 import (
 	"github.com/tidwall/gjson"
 	"github.com/xinruozhishui/go-thunder/dao"
+	"github.com/xinruozhishui/go-thunder/model"
 	"io/ioutil"
 	"net/http"
 	"strconv"
@@ -48,15 +49,19 @@ func (srv *DServ) index(rwr http.ResponseWriter, req *http.Request) {
 
 // SaveSetting is to save all tasks'progresses in a file when the program exits
 func (srv *DServ) SaveSetting(sf string) error {
-	var ss ServiceSettings
 	for _, i := range srv.dls {
-		ss.Ds = append(ss.Ds, DownloadSettings{
-			FI: i.Fi,
-			Dp: i.GetProgress(),
-		})
+		task := &model.Task{
+			Id: i.Fi.Id,
+			FileName: i.Fi.FileName,
+			Size: i.Fi.Size,
+			Url: i.Fi.Url,
+		}
+		gjson.Unmarshal([]byte(task.DownloadProgress), i.GetProgress())
+		if err := dao.UpdateTask(task); err != nil {
+			return err
+		}
 	}
-
-	return ss.SaveToFile(sf)
+	return nil
 }
 
 // LoadSetting is to load all task'progress from a file when the program starts
@@ -79,7 +84,7 @@ func (srv *DServ) GetTaskList(sf string) error {
 				Lsmt: gjson.Get(v.String(), "lsmt").Time(),
 			})
 		}
-		dl, err := RestoreDownloader(r.Url, r.FileName, dp)
+		dl, err := RestartDownloader(r.Id, r.Url, r.FileName, dp)
 		if err != nil {
 			return err
 		}

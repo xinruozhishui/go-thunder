@@ -30,7 +30,7 @@ func GetTaskList() ([]*model.Task, error) {
 }
 
 // 更新任务
-func UpdateTask(data map[string]interface{}) error {
+func UpdateTask(data *model.Task) error {
 	if err := model.DB().Model(&model.Task{}).Updates(data).Error; err != nil {
 		return err
 	}
