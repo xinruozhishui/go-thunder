@@ -1,6 +1,7 @@
 package business
 
 import (
+	"encoding/json"
 	"github.com/tidwall/gjson"
 	"github.com/xinruozhishui/go-thunder/dao"
 	"github.com/xinruozhishui/go-thunder/model"
@@ -56,7 +57,11 @@ func (srv *DServ) SaveSetting(sf string) error {
 			Size: i.Fi.Size,
 			Url: i.Fi.Url,
 		}
-		gjson.Unmarshal([]byte(task.DownloadProgress), i.GetProgress())
+		dpStr, err := json.Marshal(i.GetProgress())
+		if err != nil {
+			return err
+		}
+		task.DownloadProgress = string(dpStr)
 		if err := dao.UpdateTask(task); err != nil {
 			return err
 		}
@@ -66,22 +71,20 @@ func (srv *DServ) SaveSetting(sf string) error {
 
 // LoadSetting is to load all task'progress from a file when the program starts
 func (srv *DServ) GetTaskList(sf string) error {
-	var (
-		dp []*DownloadProgress
-	)
 	task, err := dao.GetTaskList()
 	if err != nil {
 		return err
 	}
 	for _, r := range task {
+		var dp []*DownloadProgress
 		for _, v := range gjson.Parse(r.DownloadProgress).Array() {
 			dp = append(dp, &DownloadProgress{
-				From: gjson.Get(v.String(), "from").Int(),
-				To: gjson.Get(v.String(), "to").Int(),
-				Pos:gjson.Get(v.String(), "pos").Int(),
-				BytesInSecond: gjson.Get(v.String(), "bytes_in_second").Int(),
-				Speed: gjson.Get(v.String(), "speed").Int(),
-				Lsmt: gjson.Get(v.String(), "lsmt").Time(),
+				From: gjson.Get(v.String(), "From").Int(),
+				To: gjson.Get(v.String(), "To").Int(),
+				Pos:gjson.Get(v.String(), "Pos").Int(),
+				BytesInSecond: gjson.Get(v.String(), "BytesInSecond").Int(),
+				Speed: gjson.Get(v.String(), "Speed").Int(),
+				Lsmt: gjson.Get(v.String(), "Lsmt").Time(),
 			})
 		}
 		dl, err := RestartDownloader(r.Id, r.Url, r.FileName, dp)

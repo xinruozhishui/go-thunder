@@ -1,6 +1,8 @@
 package business
 
 import (
+	"github.com/xinruozhishui/go-thunder/dao"
+	"github.com/xinruozhishui/go-thunder/model"
 	"os/user"
 	"strconv"
 	"os"
@@ -107,10 +109,18 @@ func CreateDownloader(url string, path string, count int64) (*Downloader, error)
 
 	//add to worker pool
 	wp.AppendWork(&mv)
+	task, err := dao.CreateTask(&model.Task{
+		FileName: path,
+		Size: c,
+		Url: url,
+	})
+	if err != nil {
+		return nil, err
+	}
 	d := Downloader{
 		sf: sf,
 		wp: wp,
-		Fi: FileInfo{FileName: path, Size: c, Url: url},
+		Fi: FileInfo{Id: task.Id, FileName: task.FileName, Size: task.Size, Url: task.Url},
 	}
 	return &d, nil
 }

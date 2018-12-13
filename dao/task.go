@@ -2,10 +2,11 @@ package dao
 import (
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/xinruozhishui/go-thunder/model"
+	"log"
 )
 
 // 创建新任务
-func CreateTask(data model.Task) error {
+func CreateTask(data *model.Task) (*model.Task, error) {
 	task := model.Task{
 		Id: data.Id,
 		FileName: data.FileName,
@@ -14,9 +15,9 @@ func CreateTask(data model.Task) error {
 		DownloadProgress: data.DownloadProgress,
 	}
 	if err := model.DB().Save(&task).Error; err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+	return &task, nil
 }
 
 func GetTaskList() ([]*model.Task, error) {
@@ -31,7 +32,8 @@ func GetTaskList() ([]*model.Task, error) {
 
 // 更新任务
 func UpdateTask(data *model.Task) error {
-	if err := model.DB().Model(&model.Task{}).Updates(data).Error; err != nil {
+	log.Println("data:", data)
+	if err := model.DB().Model(&model.Task{}).Where("id = ?", data.Id).Updates(data).Error; err != nil {
 		return err
 	}
 	return nil
