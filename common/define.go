@@ -1,5 +1,5 @@
 package common
 
 const (
-	DB_NAME = "go-thunder.db"
+	DbName = "go-thunder.db"
 )

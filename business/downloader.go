@@ -1,54 +1,40 @@
 package business
 
 import (
+	"encoding/json"
+	"errors"
 	"github.com/xinruozhishui/go-thunder/dao"
+	"github.com/xinruozhishui/go-thunder/library"
 	"github.com/xinruozhishui/go-thunder/model"
+	"io/ioutil"
+	"log"
+	"net/http"
+	"os"
 	"os/user"
 	"strconv"
-	"os"
-	"net/http"
-	"log"
-	"errors"
 	"time"
-	"github.com/xinruozhishui/go-thunder/library"
-	"encoding/json"
-	"io/ioutil"
 )
 
-// download file information
 type FileInfo struct {
 	Id int64 `json:"id"`
-	// download file size
-	Size     int64  `json:"Size"`
-	// download file name
+	Size int64 `json:"Size"`
 	FileName string `json:"FileName"`
-	// download file url
-	Url      string `json:"Url"`
+	Url string `json:"Url"`
 }
 
-// a downloader information
 type Downloader struct {
-	// a downloader can write at a file to mark download infomation
 	sf *library.SafeFile
-	// a downloader has a worker pool
 	wp *WorkerPool
-	// a downloader has a file information that will be downloaded
 	Fi FileInfo
 }
 
-// downloader'all works progress
 type DownloadProgress struct {
-	// work'start position
-	From          int64 `json:"From"`
-	// work'end position
-	To            int64 `json:"To"`
-	// work' downloaded position
-	Pos           int64 `json:"Pos"`
-	// work' download bytes per second
+	From int64 `json:"From"`
+	To int64 `json:"To"`
+	Pos int64 `json:"Pos"`
 	BytesInSecond int64
-	// work' download speed
-	Speed         int64
-	Lsmt          time.Time
+	Speed int64
+	Lsmt  time.Time
 }
 
 type PartialDownloader struct {
@@ -68,7 +54,6 @@ type ServiceSettings struct {
 	Ds []DownloadSettings
 }
 
-
 func getDown() string {
 	usr, _ := user.Current()
 	st := strconv.QuoteRune(os.PathSeparator)
@@ -76,26 +61,21 @@ func getDown() string {
 	return usr.HomeDir + st + "Downloads" + st
 }
 
-// CreateDownloader is to creating a new Downloader
-func CreateDownloader(url string, path string, count int64) (*Downloader, error)  {
+func CreateDownloader(url string, path string, count int64) (*Downloader, error) {
 	c, err := library.GetSize(url)
 	if err != nil {
-		//can't get file size
 		return nil, err
 	}
 
 	dfs := getDown() + path
 	sf, err := library.CreateSafeFile(dfs)
 	if err != nil {
-		//can't create file on path
 		return nil, err
 	}
 
 	if err := sf.Truncate(c); err != nil {
-		//can't truncate file
 		return nil, err
 	}
-	//create part-downloader foreach segment
 	ps := c / count
 	wp := new(WorkerPool)
 	for i := int64(0); i < count-int64(1); i++ {
@@ -103,16 +83,15 @@ func CreateDownloader(url string, path string, count int64) (*Downloader, error)
 		mv := MonitoredWorker{dw: d}
 		wp.AppendWork(&mv)
 	}
-	lastseg := int64(ps * (count - 1))
-	dow := CreatePartialDownloader(url, sf, lastseg, lastseg, c)
+	lastSeg := int64(ps * (count - 1))
+	dow := CreatePartialDownloader(url, sf, lastSeg, lastSeg, c)
 	mv := MonitoredWorker{dw: dow}
 
-	//add to worker pool
 	wp.AppendWork(&mv)
 	task, err := dao.CreateTask(&model.Task{
 		FileName: path,
-		Size: c,
-		Url: url,
+		Size:     c,
+		Url:      url,
 	})
 	if err != nil {
 		return nil, err
@@ -125,8 +104,6 @@ func CreateDownloader(url string, path string, count int64) (*Downloader, error)
 	return &d, nil
 }
 
-
-
 func CreatePartialDownloader(url string, file *library.SafeFile, from int64, pos int64, to int64) *PartialDownloader {
 	var pd PartialDownloader
 	pd.file = file
@@ -137,79 +114,69 @@ func CreatePartialDownloader(url string, file *library.SafeFile, from int64, pos
 	return &pd
 }
 
-func (pd *PartialDownloader) DownloadSergment() (bool, error) {
-	// write flush data to disk
+func (o *PartialDownloader) DownloadSegment() (bool, error) {
 	buffer := make([]byte, library.FlushDiskSize, library.FlushDiskSize)
 
-	count, err := pd.req.Body.Read(buffer)
+	count, err := o.req.Body.Read(buffer)
 	log.Println(count)
 	if (err != nil) && (err.Error() != "EOF") {
-		pd.req.Body.Close()
-		pd.file.Sync()
+		o.req.Body.Close()
+		o.file.Sync()
 		return true, err
 	}
-	//log.Printf("returned from server %v bytes", count)
-	if pd.dp.Pos+int64(count) > pd.dp.To {
-		count = int(pd.dp.To - pd.dp.Pos)
+	if o.dp.Pos+int64(count) > o.dp.To {
+		count = int(o.dp.To - o.dp.Pos)
 		log.Printf("warning: server return to much for me i give only %v bytes", count)
 	}
 
-	// write the bytes to the file, and return the number of bytes written and an error
-	realc, err := pd.file.WriteAt(buffer[:count], pd.dp.Pos)
+	realc, err := o.file.WriteAt(buffer[:count], o.dp.Pos)
 	if err != nil {
-		pd.file.Sync()
-		pd.req.Body.Close()
+		o.file.Sync()
+		o.req.Body.Close()
 		return true, err
 	}
-	pd.dp.Pos = pd.dp.Pos + int64(realc)
-	pd.CalculationSpeed(realc)
-	//log.Printf("writed %v pos %v to %v", realc, pd.dp.Pos, pd.dp.To)
-	if pd.dp.Pos == pd.dp.To {
-		//ok download part complete normal
-		pd.file.Sync()
-		pd.req.Body.Close()
-		pd.dp.Speed = 0
+	o.dp.Pos = o.dp.Pos + int64(realc)
+	o.CalculationSpeed(realc)
+	if o.dp.Pos == o.dp.To {
+		o.file.Sync()
+		o.req.Body.Close()
+		o.dp.Speed = 0
 		log.Printf("info: download complete normal")
 		return true, nil
 	}
-	//not full download next segment
 	return false, nil
 }
 
-func (pd *PartialDownloader) BeforeDownload() error {
-	//create new req
-	r, err := http.NewRequest("GET", pd.url, nil)
+func (o *PartialDownloader) BeforeDownload() error {
+	r, err := http.NewRequest("GET", o.url, nil)
 	if err != nil {
 		return err
 	}
 
-	r.Header.Add("Range", "bytes="+strconv.FormatInt(pd.dp.Pos, 10)+"-"+strconv.FormatInt(pd.dp.To, 10))
-	resp, err := pd.client.Do(r)
+	r.Header.Add("Range", "bytes="+strconv.FormatInt(o.dp.Pos, 10)+"-"+strconv.FormatInt(o.dp.To, 10))
+	resp, err := o.client.Do(r)
 	if err != nil {
 		log.Printf("error: error download part file%v \n", err)
 		return err
 	}
-	//check response
 	if resp.StatusCode != 206 {
-		log.Printf("error: file not found or moved status:", resp.StatusCode)
+		log.Printf("error: file not found or moved status:%d", resp.StatusCode)
 		return errors.New("error: file not found or moved")
 	}
-	pd.req = *resp
+	o.req = *resp
 	return nil
 }
 
-func (pd *PartialDownloader) AfterStopDownload() error {
+func (o *PartialDownloader) AfterStopDownload() error {
 	log.Println("info: try sync file")
-	log.Println(pd.req.Body.Close())
-	return pd.file.Sync()
+	log.Println(o.req.Body.Close())
+	return o.file.Sync()
 }
 
-// RestoreDownloader is to restart a downloader
 func RestartDownloader(id int64, url string, fileName string, dp []*DownloadProgress) (dl *Downloader, err error) {
 	dfs := getDown() + fileName
 	sf, err := library.OpenSafeFile(dfs)
 	if err != nil {
-		//can't create file on path
 		return nil, err
 	}
 	s, err := sf.Stat()
@@ -233,9 +200,8 @@ func RestartDownloader(id int64, url string, fileName string, dp []*DownloadProg
 	return &d, nil
 }
 
-// GetProgress is to get a download'progress
-func (dl *Downloader) GetProgress() []DownloadProgress {
-	pr := dl.wp.GetAllProgress().([]interface{})
+func (o *Downloader) GetProgress() []DownloadProgress {
+	pr := o.wp.GetAllProgress().([]interface{})
 	re := make([]DownloadProgress, len(pr))
 	for i, val := range pr {
 		re[i] = val.(DownloadProgress)
@@ -243,47 +209,27 @@ func (dl *Downloader) GetProgress() []DownloadProgress {
 	return re
 }
 
-
-// CalculationSpeed is to alculation download speed
-func (pd *PartialDownloader) CalculationSpeed(realc int) {
-	if time.Since(pd.dp.Lsmt).Seconds() > 0.5 {
-		pd.dp.Speed = 2 * pd.dp.BytesInSecond
-		pd.dp.Lsmt = time.Now()
-		pd.dp.BytesInSecond = 0
+func (o *PartialDownloader) CalculationSpeed(realc int) {
+	if time.Since(o.dp.Lsmt).Seconds() > 0.5 {
+		o.dp.Speed = 2 * o.dp.BytesInSecond
+		o.dp.Lsmt = time.Now()
+		o.dp.BytesInSecond = 0
 	} else {
-		pd.dp.BytesInSecond += int64(realc)
+		o.dp.BytesInSecond += int64(realc)
 	}
 
 }
 
-// StopAllDownloader is to stop all downloaders
-func (dl *Downloader) StopAllDownloader() []error {
-	return dl.wp.StopAll()
+func (o *Downloader) StopAllDownloader() []error {
+	return o.wp.StopAll()
 }
 
-// StartAllDownloader is to start all downloaders
-func (dl *Downloader) StartAllDownloader() []error {
-	return dl.wp.StartAll()
+func (o *Downloader) StartAllDownloader() []error {
+	return o.wp.StartAll()
 }
 
-// LoadFromFile is to load download progress from a file
-func LoadFromFile(s string) (*ServiceSettings, error) {
-	sb, err := ioutil.ReadFile(s)
-	if err != nil {
-		library.CreateSafeFile(s)
-	}
-
-	var ss ServiceSettings
-	err = json.Unmarshal(sb, &ss)
-	if err != nil {
-		return nil, err
-	}
-	return &ss, nil
-}
-
-// SaveToFile is to save download progress to a file
-func (s *ServiceSettings) SaveToFile(fp string) error {
-	dat, err := json.Marshal(s)
+func (o *ServiceSettings) SaveToFile(fp string) error {
+	dat, err := json.Marshal(o)
 	if err != nil {
 		return err
 	}
@@ -296,27 +242,25 @@ func (s *ServiceSettings) SaveToFile(fp string) error {
 	return nil
 }
 
-// GetSettingPath is to get setting'path
-func GetSettingPath() string  {
+func GetSettingPath() string {
 	u, _ := user.Current()
 	st := strconv.QuoteRune(os.PathSeparator)
 	st = st[1 : len(st)-1]
-	return u.HomeDir + st + library.SETTING_FILE_NAME
+	return u.HomeDir + st + library.SettingFileName
 }
 
-func (pd *PartialDownloader) DoWork() (bool, error) {
-	return pd.DownloadSergment()
+func (o *PartialDownloader) DoWork() (bool, error) {
+	return o.DownloadSegment()
 }
 
-func (pd PartialDownloader) GetProgress() interface{} {
-	return pd.dp
+func (o PartialDownloader) GetProgress() interface{} {
+	return o.dp
 }
 
-func (pd *PartialDownloader) BeforeRun() error {
-	return pd.BeforeDownload()
+func (o *PartialDownloader) BeforeRun() error {
+	return o.BeforeDownload()
 }
 
-func (pd *PartialDownloader) AfterStop() error {
-	return pd.AfterStopDownload()
+func (o *PartialDownloader) AfterStop() error {
+	return o.AfterStopDownload()
 }
-

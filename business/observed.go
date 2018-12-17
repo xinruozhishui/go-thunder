@@ -2,9 +2,9 @@ package business
 
 import (
 	"errors"
+	"github.com/xinruozhishui/go-thunder/library"
 	"log"
 	"sync"
-	"github.com/xinruozhishui/go-thunder/library"
 )
 
 const (
@@ -22,11 +22,10 @@ type DiscretWork interface {
 	AfterStop() error
 }
 
-
 type MonitoredWorker struct {
 	lc    sync.Mutex
-	dw   DiscretWork
-	wgrun sync.WaitGroup
+	dw    DiscretWork
+	wgRun sync.WaitGroup
 	guid  string
 	state int
 	chsig chan int
@@ -37,11 +36,10 @@ func (mw *MonitoredWorker) wgoroute() {
 	log.Println("info: work start", mw.GetId())
 	defer func() {
 		log.Print("info: realease work guid ", mw.GetId())
-		mw.wgrun.Done()
+		mw.wgRun.Done()
 	}()
 
 	for {
-		// 一般用来判断channel
 		select {
 		case newState := <-mw.chsig:
 			if newState == Stopped {
@@ -79,10 +77,8 @@ func (mw *MonitoredWorker) GetId() string {
 }
 
 func (mw *MonitoredWorker) Start() error {
-	//
 	mw.lc.Lock()
 	defer mw.lc.Unlock()
-	// judge
 	if mw.state == Completed {
 		return errors.New("error: try run completed job")
 	}
@@ -95,7 +91,7 @@ func (mw *MonitoredWorker) Start() error {
 	}
 	mw.chsig = make(chan int, 1)
 	mw.state = Running
-	mw.wgrun.Add(1)
+	mw.wgRun.Add(1)
 	go mw.wgoroute()
 
 	return nil
@@ -109,7 +105,7 @@ func (mw *MonitoredWorker) Stop() error {
 
 	}
 	mw.chsig <- Stopped
-	mw.wgrun.Wait()
+	mw.wgRun.Wait()
 	close(mw.chsig)
 	if err := mw.dw.AfterStop(); err != nil {
 		return err
@@ -118,7 +114,7 @@ func (mw *MonitoredWorker) Stop() error {
 }
 
 func (mw *MonitoredWorker) Wait() {
-	mw.wgrun.Wait()
+	mw.wgRun.Wait()
 }
 
 func (mw MonitoredWorker) GetProgress() interface{} {

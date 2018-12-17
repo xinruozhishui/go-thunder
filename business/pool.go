@@ -4,7 +4,6 @@ type WorkerPool struct {
 	workers map[string]*MonitoredWorker
 }
 
-// append a worker to the workerpool
 func (wp *WorkerPool) AppendWork(iv *MonitoredWorker) {
 	if wp.workers == nil {
 		wp.workers = make(map[string]*MonitoredWorker)
@@ -12,8 +11,6 @@ func (wp *WorkerPool) AppendWork(iv *MonitoredWorker) {
 	wp.workers[iv.GetId()] = iv
 }
 
-
-// start all workers
 func (wp *WorkerPool) StartAll() []error {
 	var errs []error
 	for _, value := range wp.workers {
@@ -24,7 +21,6 @@ func (wp *WorkerPool) StartAll() []error {
 	return errs
 }
 
-// stop all workers
 func (wp *WorkerPool) StopAll() []error {
 	var errs []error
 	for _, value := range wp.workers {
@@ -35,7 +31,6 @@ func (wp *WorkerPool) StopAll() []error {
 	return errs
 }
 
-// get all workers'progress
 func (wp *WorkerPool) GetAllProgress() interface{} {
 	var pr []interface{}
 	for _, value := range wp.workers {

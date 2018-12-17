@@ -8,7 +8,6 @@ import (
 	"crypto/rand"
 )
 
-// GetSize is to get file'size which will be downloaded
 func GetSize(urls string) (int64, error) {
 	cl := http.Client{}
 	resp, err := cl.Head(urls)
@@ -17,14 +16,13 @@ func GetSize(urls string) (int64, error) {
 		return 0, err
 	}
 	if resp.StatusCode != 200 {
-		log.Printf("error: file not found or moved status:", resp.StatusCode)
+		log.Printf("error: file not found or moved status:%d", resp.StatusCode)
 		return 0, errors.New("error: file not found or moved")
 	}
 	log.Printf("info: file size is %d bytes \n", resp.ContentLength)
 	return resp.ContentLength, nil
 }
 
-// generating a name for a thread
 func GenUid() string {
 	b := make([]byte, 16)
 	rand.Read(b)

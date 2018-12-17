@@ -5,7 +5,6 @@ import (
 	"runtime"
 )
 
-// Open calls the OS default program for uri
 func Open(url string) error {
 	var cmd *exec.Cmd
 	switch runtime.GOOS {
